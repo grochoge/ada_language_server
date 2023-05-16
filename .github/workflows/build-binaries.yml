@@ -1,22 +1,18 @@
 on:
   push:
     branches:
-      - edge
-    tags:
-      - 2*.*.*
-  pull_request:
+      - master
 name: Build binaries
 env:
   DEFAULT_TAG: 23.0.999
-  AWS_DEFAULT_REGION: eu-west-1
 jobs:
   build:
     name: Build and deploy
     strategy:
       fail-fast: false
       matrix: # Build debug and/or production
-        debug: ['']      # '' if production, 'debug' for debug
-        os: [macos-11, ubuntu-20.04, windows-latest]
+        debug: ['debug']      # '' if production, 'debug' for debug
+        os: [ windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Setup Python 3.8
@@ -84,17 +80,11 @@ jobs:
       - name: Build (Windows)
         if: ${{ runner.os == 'Windows' }}
         shell: msys2 {0}
-        env:
-          AWS_ACCESS_KEY_ID: ${{secrets.GHA_CACHE_ACCESS_KEY_ID}}
-          AWS_SECRET_ACCESS_KEY: ${{secrets.GHA_CACHE_SECRET}}
         run: |
           # This is to avoid locking .sh on win that prevents its updating
           cp .github/workflows/build-binaries.sh .github/workflows/build-binaries.sh_
           .github/workflows/build-binaries.sh_ "${{ matrix.debug }}" ${{ runner.os }} ${{ env.TAG }}
       - name: Build (non-Windows)
-        env:
-          AWS_ACCESS_KEY_ID: ${{secrets.GHA_CACHE_ACCESS_KEY_ID}}
-          AWS_SECRET_ACCESS_KEY: ${{secrets.GHA_CACHE_SECRET}}
         if: ${{ runner.os != 'Windows' }}
         run: .github/workflows/build-binaries.sh "${{ matrix.debug }}" ${{ runner.os }} ${{ env.TAG }}
       - name: Archive ALS binary
